@@ -1,0 +1,46 @@
+name: build release
+
+on:
+  push:
+    tags:
+      - "*.*.*"
+    # branches:
+    #   - main
+  pull_request:
+    branches: ["main"]
+
+env:
+  ANDROID_NDK_VERSION: r26c
+
+jobs:
+  
+  build-windows:
+    name: build-windows
+    runs-on: windows-2019
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: build
+        run: |
+          python3 -m pip install conan
+          conan profile detect -f
+          conan build . -b missing -s compiler.cppstd=20
+      - uses: actions/upload-artifact@v4
+        name: upload-windows-x64
+        with:
+          path: build/publish/libopencv-windows-x64.tar.gz
+          name: libopencv-windows-x64.tar.gz
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          draft: true
+          prerelease: false
+          files: |
+            build/publish/libopencv-windows-x64.tar.gz
+  
